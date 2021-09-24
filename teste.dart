@@ -1,3 +1,6 @@
+import 'package:ansicolor/ansicolor.dart';
+
+
 main() {
 String dia = (DateTime.now().day).toString();
 String mes = (DateTime.now().month).toString();
@@ -12,5 +15,10 @@ print(horaFormatada);
 
 String dataFormatada = ano + '-0' + mes + '-' + dia;
 print(dataFormatada);
+
+print(DateTime.now());
+
+AnsiPen pen = new AnsiPen()..blue();
+print(pen("White foreground with a peach background"));
 
 }
