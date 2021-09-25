@@ -9,7 +9,7 @@ Future main() async {
     port: 3306,
     user: 'root',
     db: 'cpifpe',
-    password: 'root#012345'));
+    password: 'root000'));
     await Future.delayed(Duration(seconds: 1));
 
 //* Criação de tabelas:
@@ -70,18 +70,20 @@ await conn.query('''CREATE TABLE ponto (
     String nome = stdin.readLineSync()!.trim();
 
     stdout.write('Login do IFPE: ');
-    String login = stdin.readLineSync()!;
+    String login = stdin.readLineSync()!.toString().trim();
 
     stdout.write('Senha (max: 12 caracteres): ');
-    String senha = stdin.readLineSync()!;
+    String senha = stdin.readLineSync()!.toString().trim();
 
     // Inserindo dados na tabela
     await conn.query(
       'insert into administrador(nome, login, senha) values(?, ?, ?)',
       [nome, login, senha]);
-    AnsiPen pen = new AnsiPen()..green();
     sleep(Duration(seconds: 1));
+    AnsiPen pen = new AnsiPen()..green();
     print(pen('Cadastro realizado com sucesso!'));
+    print('-' * 40);
+    sleep(Duration(seconds: 1));
   }
 
   //! Realizar Login
@@ -109,9 +111,9 @@ await conn.query('''CREATE TABLE ponto (
 
     //? Login:
     stdout.write('Sua matrícula do IFPE: ');
-    String matricula = stdin.readLineSync()!.trim();
+    String matricula = stdin.readLineSync()!.toString().trim();
     stdout.write('Senha: ');
-    String senha = stdin.readLineSync()!.trim();
+    String senha = stdin.readLineSync()!.toString().trim();
 
     sleep(Duration(seconds: 1));
 
@@ -190,8 +192,14 @@ await conn.query('''CREATE TABLE ponto (
             tipoPonto = 'ENTRADA';
           else if (escolha == 2)
             tipoPonto = 'SAÍDA';
+          
+          String nome = '';
 
           if (escolha == 1 || escolha == 2) {
+            //* Buscando nome do usuário:
+            var results = await conn.query('SELECT nome FROM usuario WHERE matricula = ?', [matricula]);
+            for (var row in results)
+              nome = (row[0].toString().split(' '))[0];
             //* Buscando data
             String dia = (DateTime.now().day).toString();
             String mes = (DateTime.now().month).toString();
@@ -210,11 +218,13 @@ await conn.query('''CREATE TABLE ponto (
               [data, horario, matricula, tipoPonto]);
             if (escolha == 1) {
               AnsiPen pen = new AnsiPen()..green();
-              print(pen('Entrada realizada com sucesso. Seja bem vindo!'));
+              print(pen('Entrada realizada com sucesso.') + ' Seja bem vindo, $nome!');
+              print('-' * 40);
             }
             else if (escolha == 2) {
               AnsiPen pen = new AnsiPen()..green();
-              print(pen('Saída realizada com sucesso. Até a próxima!'));
+              print(pen('Saída realizada com sucesso.') + ' Até a próxima, $nome!');
+              print('-' * 40);
             }              
           }
         }
@@ -229,12 +239,12 @@ await conn.query('''CREATE TABLE ponto (
 [ 0 ] - Sair da conta''');
             int escolha = 0;
             while (true) {
-            stdout.write('Escolha: ');
-            escolha = int.parse(stdin.readLineSync()!);
-            if (escolha == 1 || escolha == 2 || escolha == 3 || escolha == 0)
-              break;
-            AnsiPen pen = new AnsiPen()..red();
-            print(pen('Escolha inválida!'));
+              stdout.write('Escolha: ');
+              escolha = int.parse(stdin.readLineSync()!);
+              if (escolha == 1 || escolha == 2 || escolha == 3 || escolha == 0)
+                break;
+              AnsiPen pen = new AnsiPen()..red();
+              print(pen('Escolha inválida!'));
             }
 
             if (escolha == 0) {
@@ -248,7 +258,7 @@ await conn.query('''CREATE TABLE ponto (
               while (true) {
                 print('-' * 40);
                 sleep(Duration(seconds: 1));
-                print('''Você deseja cadastrar um professor ou um aluno?
+                print('''Você deseja cadastrar um Professor ou um Aluno?
 [ 1 ] - Professor
 [ 2 ] - Aluno
 [ 0 ] - Voltar''');
@@ -276,24 +286,37 @@ await conn.query('''CREATE TABLE ponto (
                   tipoUsuario = 'ALUNO';
 
                   //* Cadastrando Usuário:
-                  stdout.write('Nome: ');
-                  String nome = stdin.readLineSync()!.trim();
+                  stdout.write('Informe a matrícula: ');
+                  String matricula = stdin.readLineSync()!.toString().trim();
 
-                  stdout.write('Matricula do IFPE: ');
-                  String matricula = stdin.readLineSync()!.trim();
+                  //* Verificando se já existe um usuário cadastrado com a matrícula informada
+                  var results = await conn.query('SELECT COUNT(*) FROM usuario WHERE matricula = ?', [matricula]);
+                  for (var row in results)
+                    quantidade = row[0];
 
-                  stdout.write('Senha: ');
-                  String senha = stdin.readLineSync()!.trim();
-              
-                  stdout.write('Sala: ');
-                  String id_sala = stdin.readLineSync()!.trim();
+                  if (quantidade == 1) {
+                    sleep(Duration(seconds: 1));
+                    AnsiPen pen = new AnsiPen()..red();
+                    print(pen('Já existe um usuário cadastrado com essa matrícula!'));
+                  }
 
-                  await conn.query(
-                    'insert into usuario (login_adm, nome, matricula, senha, id_sala, tipo) values(?, ?, ?, ?, ?, ?)',
-                    [login_adm, nome, matricula, senha, id_sala, tipoUsuario]);
-                  sleep(Duration(seconds: 1));
-                  AnsiPen pen = new AnsiPen()..green();
-                  print(pen('Cadastro realizado com sucesso!'));
+                  else {
+                    stdout.write('Nome: ');
+                    String nome = stdin.readLineSync()!.trim();
+
+                    stdout.write('Senha: ');
+                    String senha = stdin.readLineSync()!.toString().trim();
+                
+                    stdout.write('Sala: ');
+                    String id_sala = stdin.readLineSync()!.toString().trim().toUpperCase();
+
+                    await conn.query(
+                      'insert into usuario (login_adm, nome, matricula, senha, id_sala, tipo) values(?, ?, ?, ?, ?, ?)',
+                      [login_adm, nome, matricula, senha, id_sala, tipoUsuario]);
+                    sleep(Duration(seconds: 1));
+                    AnsiPen pen = new AnsiPen()..green();
+                    print(pen('Cadastro realizado com sucesso!'));
+                  }
               }
             }
 
@@ -301,7 +324,7 @@ await conn.query('''CREATE TABLE ponto (
               print('-' * 40);
               sleep(Duration(seconds: 1));
               stdout.write('Informe a matrícula do usuário: ');
-              String matricula = stdin.readLineSync()!;
+              String matricula = stdin.readLineSync()!.toString().trim();
 
               //* Verificando se existe algum usuário com a matrícula informada:
               var results = await conn.query(
@@ -315,7 +338,7 @@ await conn.query('''CREATE TABLE ponto (
                 print('-' * 40);
               }
               else {
-                //* Exclundio dados desse usuário na tabela ponto:
+                //* Excluindo dados desse usuário na tabela ponto:
                 await conn.query('DELETE FROM ponto WHERE matricula = ?', [matricula]);
                 //* Excluindo dado da tabela:
                 await conn.query('DELETE FROM usuario WHERE matricula = ?', [matricula]);
@@ -327,13 +350,13 @@ await conn.query('''CREATE TABLE ponto (
             }
 
             else if (escolha == 3) {
-              sleep(Duration(seconds: 1));
               String space = ' ';
-              AnsiPen pen = new AnsiPen()..xterm(004);
+              AnsiPen pen = new AnsiPen()..xterm(029);
               print(pen('-' * 82));
-              pen = new AnsiPen()..xterm(004);
+              sleep(Duration(seconds: 1));
+              pen = new AnsiPen()..xterm(029);
               print(pen('DATA${space * 11}HORÁRIO${space * 8}NOME${space * 21}MATRÍCULA${space * 11}TIPO${space * 3}'));
-              pen = new AnsiPen()..xterm(004);
+              pen = new AnsiPen()..xterm(029);
               print(pen('-' * 82));
               var results = await conn.query('''select ponto.data, ponto.horario, usuario.nome, ponto.matricula, ponto.tipo
   FROM ponto INNER JOIN usuario on ponto.matricula = usuario.matricula ORDER BY ponto.data, nome, horario;''');
@@ -348,7 +371,7 @@ await conn.query('''CREATE TABLE ponto (
                 stdout.write('$dataFormatada${space * (15 - dataFormatada.length)}$horario${space * (15 - horario.length)}');
                 print('$nome${space * (25 - nome.length)}$matricula${space * (20 - matricula.length)}$tipo${space * (7 - tipo.length)}');
               }
-              pen = new AnsiPen()..xterm(004);
+              pen = new AnsiPen()..xterm(029);
               print(pen('-' * 82));
             }
           }
